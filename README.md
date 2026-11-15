@@ -3,6 +3,9 @@
 NASA Space Apps 2026 challenge: *The Earth Information Jukebox*.
 Pick an Earth Information Center frame, hear it as music generated live in the browser.
 
+The interface uses a Carbon-inspired design system with light mode by default and
+a persistent dark-mode control.
+
 ## Run it
 
 ```bash

@@ -5,15 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Earth Information Jukebox</title>
   <meta name="description" content="Hear NASA Earth Information Center visualizations. Each frame is turned into music in real time.">
+  <meta name="theme-color" content="#f4f4f4">
+  <meta name="color-scheme" content="light dark">
   <link rel="icon" href="data:,">
+  <script>
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem('earth-jukebox-theme') === 'dark' ? 'dark' : 'light';
+    } catch (_) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <a class="skip" href="#stage">Skip to the jukebox</a>
 
   <header>
-    <h1>Earth Information Jukebox</h1>
-    <p>Pick a NASA Earth Information Center frame. Hear it. A playhead sweeps the image from west to east and the pixels it crosses are turned into music, live, in your browser.</p>
+    <div class="header-bar">
+      <div>
+        <span class="eyebrow">NASA Earth data · Sonification lab</span>
+        <h1>Earth Information Jukebox</h1>
+      </div>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
+        <span class="theme-glyph" aria-hidden="true"></span>
+        <span id="theme-label">Dark mode</span>
+      </button>
+    </div>
+    <p class="intro">Pick an Earth Information Center record and hear the image become music. The playhead scans west to east, translating the pixels beneath it in real time.</p>
   </header>
 
   <noscript><p class="warn">This app needs JavaScript to analyze images and make sound.</p></noscript>
@@ -199,6 +217,31 @@
   </footer>
 
   <div id="live" class="sr-only" aria-live="polite"></div>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const button = document.getElementById('theme-toggle');
+      const label = document.getElementById('theme-label');
+      const themeMeta = document.querySelector('meta[name="theme-color"]');
+
+      function applyTheme(theme, persist) {
+        const isDark = theme === 'dark';
+        root.dataset.theme = isDark ? 'dark' : 'light';
+        button.setAttribute('aria-pressed', String(isDark));
+        button.setAttribute('aria-label', `Switch to ${isDark ? 'light' : 'dark'} mode`);
+        label.textContent = isDark ? 'Light mode' : 'Dark mode';
+        themeMeta.setAttribute('content', isDark ? '#262626' : '#f4f4f4');
+        if (persist) {
+          try { localStorage.setItem('earth-jukebox-theme', root.dataset.theme); } catch (_) {}
+        }
+      }
+
+      button.addEventListener('click', () => {
+        applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark', true);
+      });
+      applyTheme(root.dataset.theme, false);
+    })();
+  </script>
   <script src="daily-records.js"></script>
   <script src="app.js"></script>
 </body>
