@@ -14,6 +14,16 @@ python app.py --no-browser    # do not auto-open a tab
 It serves `app/` on http://127.0.0.1:8765 and opens it in your browser. Ctrl+C stops it.
 Python standard library only, no build step. Needs a modern browser (Web Audio API).
 
+## Deploy to OpenShift
+
+The `deployment/` directory contains a non-root Nginx image, a multi-platform
+Docker Hub build script, and OpenShift Deployment, Service, and TLS Route manifests.
+
+```bash
+./deployment/build.sh latest
+./deployment/deploy.sh latest
+```
+
 ## What it does
 
 - Two record crates: 10 curated Earth Portraits and all 23 entries from NASA's Earth Information Center Daily Visualizations catalog (`app/frames/`).
