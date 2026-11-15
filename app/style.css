@@ -116,6 +116,8 @@ button.primary:hover { border-color: var(--interactive-hover); background: var(-
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 1rem 0; }
 .vol { display: flex; align-items: center; gap: .75rem; margin-left: .5rem; color: var(--text-secondary); }
 .pos { margin-left: auto; color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.audio-status { width: 100%; min-height: 1.25rem; color: var(--text-secondary); font-size: .875rem; }
+.audio-status.error { color: var(--danger); }
 input[type="range"] { accent-color: var(--interactive); }
 
 .mixer { margin: 0 0 1.5rem; border: 1px solid var(--border-subtle); background: var(--layer-01); }

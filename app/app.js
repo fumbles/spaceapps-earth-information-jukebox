@@ -620,17 +620,19 @@ async function renderWav(plan) {
 /* ------------------------------ player ------------------------------ */
 const player = {
   ctx: null, chain: null, synth: null, plan: null,
-  playing: false, pos: 0, queue: [], next: { col: 0, time: 0 }, timer: null, volume: 0.8,
+  playing: false, starting: false, pos: 0, queue: [], next: { col: 0, time: 0 }, timer: null, volume: 0.8,
 };
 
-function ensureAudio() {
+async function ensureAudio() {
   if (!player.ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) throw new Error('Web Audio is not supported by this browser.');
     player.ctx = new AC();
     player.chain = makeChain(player.ctx, player.volume, player.plan ? player.plan.style.reverb : undefined);
   }
-  if (player.ctx.state !== 'running') player.ctx.resume();
   if (!player.synth && player.plan) player.synth = new Synth(player.ctx, player.chain, player.plan);
+  if (player.ctx.state !== 'running') await player.ctx.resume();
+  if (player.ctx.state !== 'running') throw new Error(`Audio is ${player.ctx.state}.`);
 }
 
 function setPlan(plan) {
@@ -655,10 +657,24 @@ function startPlayback() {
   if (!player.timer) player.timer = setInterval(tick, 25);
 }
 
-function play() {
-  if (!player.plan) return;
-  ensureAudio();
-  startPlayback();
+async function play() {
+  if (!player.plan || player.starting) return false;
+  player.starting = true;
+  ui.play.disabled = true;
+  setAudioStatus('Starting audio…');
+  try {
+    await ensureAudio();
+    startPlayback();
+    setAudioStatus('Sound ready');
+    return true;
+  } catch (error) {
+    console.error('Unable to start audio:', error);
+    setAudioStatus('Audio blocked. Tap Play again.', true);
+    return false;
+  } finally {
+    player.starting = false;
+    ui.play.disabled = false;
+  }
 }
 
 function pause() {
@@ -734,7 +750,7 @@ const ui = {
   stage: $('stage'), frame: $('frame'), overlay: $('overlay'), octx: $('overlay').getContext('2d'),
   title: $('now-title'), alt: $('alt-text'), summary: $('summary'), colinfo: $('colinfo'),
   science: $('science-story'), listen: $('listen-for'), source: $('source'),
-  play: $('play'), pos: $('pos'), live: $('live'), announce: $('announce'),
+  play: $('play'), pos: $('pos'), audioStatus: $('audio-status'), live: $('live'), announce: $('announce'),
   list: $('tracks'), crateDaily: $('crate-daily'), crateCurated: $('crate-curated'),
   mixKey: $('mix-key'), mixScale: $('mix-scale'), mixVoices: $('mix-voices'),
   mixDensity: $('mix-density'), mixTempo: $('mix-tempo'), mixTone: $('mix-tone'), mixReverb: $('mix-reverb'),
@@ -925,15 +941,30 @@ function setCollection(collection) {
   else selectTrack(current);
 }
 
-function togglePlay() {
-  if (player.playing) { pause(); ui.play.textContent = 'Play'; }
-  else { play(); ui.play.textContent = 'Pause'; }
+function setAudioStatus(message, error = false) {
+  ui.audioStatus.textContent = message;
+  ui.audioStatus.classList.toggle('error', error);
 }
 
-function step(delta) {
+async function togglePlay() {
+  if (player.playing) { pause(); ui.play.textContent = 'Play'; }
+  else {
+    const started = await play();
+    ui.play.textContent = started ? 'Pause' : 'Play';
+  }
+}
+
+async function step(delta) {
   if (!player.plan) return;
   const c = clamp(Math.floor(currentPos()) + delta, 0, COLS - 1);
-  ensureAudio();
+  try {
+    await ensureAudio();
+    setAudioStatus('Sound ready');
+  } catch (error) {
+    console.error('Unable to start audio:', error);
+    setAudioStatus('Audio blocked. Tap Play first.', true);
+    return;
+  }
   seek(c, true);
   showColumn(c, true);
 }
@@ -956,11 +987,18 @@ function colFromEvent(e) {
   const r = ui.stage.getBoundingClientRect();
   return clamp(Math.floor((e.clientX - r.left) / r.width * COLS), 0, COLS - 1);
 }
-ui.stage.addEventListener('pointerdown', e => {
+ui.stage.addEventListener('pointerdown', async e => {
   if (!player.plan) return;
   ui.stage.focus();
   ui.stage.setPointerCapture(e.pointerId);
-  ensureAudio();
+  try {
+    await ensureAudio();
+    setAudioStatus('Sound ready');
+  } catch (error) {
+    console.error('Unable to start audio:', error);
+    setAudioStatus('Audio blocked. Tap Play first.', true);
+    return;
+  }
   scrubbing = true; lastScrub = -1;
   scrubTo(e);
 });
@@ -1019,6 +1057,14 @@ ui.mixTempo.addEventListener('input', e => { mixer.bpm = parseInt(e.target.value
 ui.mixTone.addEventListener('input', e => { mixer.tone = parseFloat(e.target.value); scheduleMixerRefresh(); });
 ui.mixReverb.addEventListener('input', e => { mixer.reverb = parseFloat(e.target.value); scheduleMixerRefresh(); });
 ui.mixReset.addEventListener('click', resetMixer);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && player.playing && player.ctx?.state !== 'running') {
+    setAudioStatus('Audio paused by iPhone. Tap Play to resume.', true);
+    pause();
+    ui.play.textContent = 'Play';
+  }
+});
 
 $('wav').addEventListener('click', async e => {
   if (!player.plan) return;
