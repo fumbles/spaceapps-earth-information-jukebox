@@ -114,7 +114,13 @@ button.primary {
 button.primary:hover { border-color: var(--interactive-hover); background: var(--interactive-hover); }
 :root[data-theme="dark"] button.primary { color: #161616; }
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 1rem 0; }
+.queue-control,
 .vol { display: flex; align-items: center; gap: .75rem; margin-left: .5rem; color: var(--text-secondary); }
+.queue-control select {
+  min-width: 9.5rem; min-height: 2.5rem; padding: .45rem 2rem .45rem .75rem;
+  border: 0; border-bottom: 1px solid var(--border-strong); border-radius: 0;
+  background: var(--field); color: var(--text-primary);
+}
 .pos { margin-left: auto; color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; }
 .audio-status { width: 100%; min-height: 1.25rem; color: var(--text-secondary); font-size: .875rem; }
 .audio-status.error { color: var(--danger); }
@@ -231,6 +237,7 @@ footer {
   .header-bar { gap: 1rem; }
   .theme-toggle #theme-label { display: none; }
   .mixer-grid { grid-template-columns: 1fr; }
+  .queue-control { margin-left: 0; }
   .vol { width: 100%; margin-left: 0; }
   .reference-grid dl div { grid-template-columns: 1fr; gap: 0; }
   th, td { padding: .625rem; }

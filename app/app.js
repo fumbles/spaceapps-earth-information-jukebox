@@ -620,7 +620,8 @@ async function renderWav(plan) {
 /* ------------------------------ player ------------------------------ */
 const player = {
   ctx: null, chain: null, synth: null, plan: null,
-  playing: false, starting: false, pos: 0, queue: [], next: { col: 0, time: 0 }, timer: null, volume: 0.8,
+  playing: false, starting: false, transitioning: false, transitionTimer: null,
+  pos: 0, queue: [], next: { col: 0, time: 0 }, timer: null, volume: 0.8,
 };
 
 async function ensureAudio() {
@@ -636,6 +637,7 @@ async function ensureAudio() {
 }
 
 function setPlan(plan) {
+  clearQueueTransition();
   if (player.synth && player.ctx) player.synth.stopDrone(player.ctx.currentTime);
   player.synth = null;
   player.plan = plan;
@@ -649,6 +651,7 @@ function setPlan(plan) {
 }
 
 function startPlayback() {
+  clearQueueTransition();
   const now = player.ctx.currentTime;
   player.synth.startDrone(now);
   player.queue = [];
@@ -679,21 +682,58 @@ async function play() {
 
 function pause() {
   if (!player.playing) return;
+  clearQueueTransition();
   player.pos = currentPos();
   player.playing = false;
   player.synth.stopDrone(player.ctx.currentTime);
 }
 
 function tick() {
-  if (!player.playing) return;
+  if (!player.playing || player.transitioning) return;
   const { ctx, plan, next, queue } = player;
   const limit = ctx.currentTime + 0.25;
   while (next.time < limit) {
     player.synth.playCol(next.col, next.time);
     queue.push({ time: next.time, col: next.col });
+    const finishedSweep = next.col === COLS - 1;
     next.col = (next.col + 1) % COLS;
     next.time += plan.step;
+    if (finishedSweep && ui.queueMode.value !== 'repeat') {
+      scheduleQueueAdvance(next.time);
+      break;
+    }
   }
+}
+
+function clearQueueTransition() {
+  clearTimeout(player.transitionTimer);
+  player.transitionTimer = null;
+  player.transitioning = false;
+}
+
+function queuedTrackIndex(mode) {
+  const visible = visibleTrackIndices();
+  if (visible.length < 2) return current;
+  const at = Math.max(0, visible.indexOf(current));
+  if (mode === 'order') return visible[(at + 1) % visible.length];
+  const choices = visible.filter(i => i !== current);
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+function scheduleQueueAdvance(atTime) {
+  player.transitioning = true;
+  const delay = Math.max(0, (atTime - player.ctx.currentTime) * 1000);
+  player.transitionTimer = setTimeout(async () => {
+    const mode = ui.queueMode.value;
+    if (!player.playing || mode === 'repeat') {
+      clearQueueTransition();
+      return;
+    }
+    const nextIndex = queuedTrackIndex(mode);
+    setAudioStatus(mode === 'shuffle' ? 'Shuffling next record…' : 'Loading next record…');
+    const changed = await selectTrack(nextIndex);
+    if (changed) setAudioStatus(mode === 'shuffle' ? 'Shuffle is playing' : 'Queue is playing');
+  }, delay);
 }
 
 function currentPos() {
@@ -750,7 +790,7 @@ const ui = {
   stage: $('stage'), frame: $('frame'), overlay: $('overlay'), octx: $('overlay').getContext('2d'),
   title: $('now-title'), alt: $('alt-text'), summary: $('summary'), colinfo: $('colinfo'),
   science: $('science-story'), listen: $('listen-for'), source: $('source'),
-  play: $('play'), pos: $('pos'), audioStatus: $('audio-status'), live: $('live'), announce: $('announce'),
+  play: $('play'), pos: $('pos'), queueMode: $('queue-mode'), audioStatus: $('audio-status'), live: $('live'), announce: $('announce'),
   list: $('tracks'), crateDaily: $('crate-daily'), crateCurated: $('crate-curated'),
   mixKey: $('mix-key'), mixScale: $('mix-scale'), mixVoices: $('mix-voices'),
   mixDensity: $('mix-density'), mixTempo: $('mix-tempo'), mixTone: $('mix-tone'), mixReverb: $('mix-reverb'),
@@ -877,8 +917,8 @@ async function selectTrack(i) {
   const token = ++loadToken;
   const t = TRACKS[i];
   let img;
-  try { img = await loadImage(t.src); } catch (e) { ui.title.textContent = e.message; return; }
-  if (token !== loadToken) return;
+  try { img = await loadImage(t.src); } catch (e) { ui.title.textContent = e.message; return false; }
+  if (token !== loadToken) return false;
   const plan = analyze(img, effectiveStyle(t));
   current = i;
   currentImage = img;
@@ -901,6 +941,7 @@ async function selectTrack(i) {
     b.setAttribute('aria-pressed', String(Number(b.dataset.index) === i));
   });
   if (ui.announce.checked) announce(`${t.title}. ${t.alt} ${summarize(plan, 'Sonification')}`);
+  return true;
 }
 
 function visibleTrackIndices() {
@@ -1046,6 +1087,14 @@ function setVolume(v) {
 $('play').addEventListener('click', togglePlay);
 $('prev').addEventListener('click', () => relTrack(-1));
 $('next').addEventListener('click', () => relTrack(1));
+$('queue-mode').addEventListener('change', e => {
+  const labels = { repeat: 'Repeat record', order: 'Play in order', shuffle: 'Shuffle' };
+  if (e.target.value === 'repeat' && player.transitioning) {
+    clearQueueTransition();
+    player.next.time = player.ctx.currentTime + 0.03;
+  }
+  setAudioStatus(`Queue: ${labels[e.target.value]}`);
+});
 $('vol').addEventListener('input', e => setVolume(parseFloat(e.target.value)));
 ui.crateDaily.addEventListener('click', () => setCollection('daily'));
 ui.crateCurated.addEventListener('click', () => setCollection('curated'));
