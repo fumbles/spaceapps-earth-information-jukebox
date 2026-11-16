@@ -15,7 +15,7 @@
       document.documentElement.dataset.theme = 'light';
     }
   </script>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261115-mobile-audio-3">
 </head>
 <body>
   <a class="skip" href="#stage">Skip to the jukebox</a>
@@ -51,13 +51,14 @@
         <button id="play" type="button" class="primary">Play</button>
         <button id="prev" type="button">Previous</button>
         <button id="next" type="button">Next</button>
-        <label class="queue-control">Queue
-          <select id="queue-mode">
-            <option value="repeat">Repeat record</option>
-            <option value="order">Play in order</option>
-            <option value="shuffle">Shuffle</option>
-          </select>
-        </label>
+        <button id="queue-toggle" type="button" class="queue-toggle" aria-expanded="false" aria-controls="queue-panel">
+          Queue <span id="queue-count" aria-label="Queue is loading">…</span>
+        </button>
+        <select id="queue-mode" class="queue-mode" aria-label="Queue mode">
+          <option value="repeat">Repeat record</option>
+          <option value="order">Play in order</option>
+          <option value="shuffle">Shuffle</option>
+        </select>
         <label class="vol">Volume
           <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
         </label>
@@ -189,6 +190,13 @@
     </section>
 
     <aside aria-labelledby="tracks-title">
+      <section id="queue-panel" class="queue-panel" aria-labelledby="queue-title" hidden>
+        <div class="queue-heading">
+          <h2 id="queue-title">Up next</h2>
+          <span id="queue-mode-label">Repeat record</span>
+        </div>
+        <ol id="queue-list" class="queue-list"></ol>
+      </section>
       <h2 id="tracks-title">Records</h2>
       <div class="crates" role="group" aria-label="Record crate">
         <button id="crate-daily" type="button" class="crate" aria-pressed="true">Earth Right Now <span>23</span></button>
@@ -250,7 +258,7 @@
       applyTheme(root.dataset.theme, false);
     })();
   </script>
-  <script src="daily-records.js"></script>
-  <script src="app.js"></script>
+  <script src="daily-records.js?v=20261115-mobile-audio-3"></script>
+  <script src="app.js?v=20261115-mobile-audio-3"></script>
 </body>
 </html>

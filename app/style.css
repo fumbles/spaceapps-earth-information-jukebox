@@ -114,9 +114,12 @@ button.primary {
 button.primary:hover { border-color: var(--interactive-hover); background: var(--interactive-hover); }
 :root[data-theme="dark"] button.primary { color: #161616; }
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 1rem 0; }
-.queue-control,
 .vol { display: flex; align-items: center; gap: .75rem; margin-left: .5rem; color: var(--text-secondary); }
-.queue-control select {
+.queue-toggle span {
+  min-width: 1.5rem; margin-left: .375rem; padding: .125rem .375rem;
+  background: var(--interactive-soft); color: var(--interactive); font-size: .75rem;
+}
+.queue-mode {
   min-width: 9.5rem; min-height: 2.5rem; padding: .45rem 2rem .45rem .75rem;
   border: 0; border-bottom: 1px solid var(--border-strong); border-radius: 0;
   background: var(--field); color: var(--text-primary);
@@ -186,6 +189,19 @@ input[type="range"] { accent-color: var(--interactive); }
 .file input { max-width: 14rem; margin-left: .5rem; color: var(--text-secondary); }
 
 aside { align-self: start; padding: 1rem; border-top: 4px solid var(--interactive); background: var(--layer-01); }
+.queue-panel { margin: -1rem -1rem 1.25rem; padding: 1rem; border-bottom: 1px solid var(--border-strong); background: var(--layer-02); }
+.queue-panel[hidden] { display: none; }
+.queue-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.queue-heading h2 { margin: 0 0 .75rem; font-size: 1.125rem; }
+.queue-heading span { color: var(--text-secondary); font-size: .75rem; }
+.queue-list { max-height: 18rem; margin: 0; padding: 0; overflow-y: auto; list-style: none; counter-reset: queue; }
+.queue-list li { counter-increment: queue; border-top: 1px solid var(--border-subtle); }
+.queue-list button {
+  width: 100%; min-height: 2rem; padding: .375rem .25rem; border: 0;
+  text-align: left; font-size: .8125rem;
+}
+.queue-list button::before { content: counter(queue) "."; display: inline-block; width: 1.75rem; color: var(--text-secondary); }
+.queue-list .queue-note { padding: .5rem .25rem; color: var(--text-secondary); font-size: .8125rem; }
 .crates { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); }
 .crate { border: 0; border-bottom: 3px solid transparent; text-align: left; font-size: .875rem; line-height: 1.25; }
 .crate span { display: block; margin-top: .25rem; color: var(--text-secondary); font-size: .75rem; }
@@ -237,7 +253,7 @@ footer {
   .header-bar { gap: 1rem; }
   .theme-toggle #theme-label { display: none; }
   .mixer-grid { grid-template-columns: 1fr; }
-  .queue-control { margin-left: 0; }
+  .queue-mode { min-width: 8.5rem; }
   .vol { width: 100%; margin-left: 0; }
   .reference-grid dl div { grid-template-columns: 1fr; gap: 0; }
   th, td { padding: .625rem; }
